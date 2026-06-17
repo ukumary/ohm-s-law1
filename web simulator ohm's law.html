@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ohm's Law Simulator — PSG GRD Museum of Science & Technology</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0a0d12; --panel:#0f1520; --border:#1e3a5f;
+  --accent:#00d4ff; --amber:#ffb300; --red:#ff4444;
+  --green:#00ff88; --dim:#1a2a3a; --text:#c8ddef; --muted:#4a6a8a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;
+  background-image:radial-gradient(ellipse at 20% 0%,rgba(0,60,120,.2) 0%,transparent 50%),
+                   radial-gradient(ellipse at 80% 100%,rgba(0,100,80,.1) 0%,transparent 50%);}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,212,255,.03) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,212,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;}
+.container{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:20px 16px;}
+
+/* ── HEADER ── */
+.museum-header{text-align:center;margin-bottom:6px;padding:18px 20px 12px;
+  background:linear-gradient(135deg,#0a1a0a 0%,#0f1f1a 100%);
+  border:1px solid #1e5a3f;border-top:3px solid var(--green);}
+.museum-name{font-size:22px;font-weight:700;letter-spacing:3px;color:#fff;text-transform:uppercase;line-height:1.2;}
+.museum-name span{background:linear-gradient(90deg,var(--green),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.museum-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:3px;margin-top:4px;}
+
+.sim-title{text-align:center;margin:10px 0 18px;}
+.sim-title h1{font-size:44px;font-weight:700;letter-spacing:3px;line-height:1;
+  background:linear-gradient(135deg,#fff 0%,var(--accent) 50%,var(--green) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.sim-title p{font-size:12px;color:var(--muted);letter-spacing:4px;text-transform:uppercase;margin-top:4px;}
+
+/* ── SWITCH BAR ── */
+.switch-bar{display:flex;align-items:center;justify-content:center;gap:24px;
+  background:var(--panel);border:1px solid var(--border);border-top:3px solid var(--red);
+  padding:14px 24px;margin-bottom:18px;flex-wrap:wrap;transition:border-top-color .4s;}
+.switch-bar.on{border-top-color:var(--green);box-shadow:0 0 30px rgba(0,255,136,.06);}
+.sw-label{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--muted);}
+.status-dot{width:12px;height:12px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);
+  animation:blink 1.4s infinite;}
+.switch-bar.on .status-dot{background:var(--green);box-shadow:0 0 12px var(--green);animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.status-txt{font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;letter-spacing:4px;
+  color:var(--red);text-shadow:0 0 12px var(--red);min-width:52px;}
+.switch-bar.on .status-txt{color:var(--green);text-shadow:0 0 14px var(--green);}
+.toggle-wrap{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+.tog-off{font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:700;color:var(--red);transition:color .3s;}
+.tog-on {font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:700;color:var(--muted);transition:color .3s;}
+.switch-bar.on .tog-off{color:var(--muted);}
+.switch-bar.on .tog-on{color:var(--green);}
+.pill{width:68px;height:34px;background:#1a0a0a;border:2px solid var(--red);border-radius:17px;
+  position:relative;transition:background .35s,border-color .35s,box-shadow .35s;}
+.switch-bar.on .pill{background:#0a1a0a;border-color:var(--green);box-shadow:0 0 16px rgba(0,255,136,.4);}
+.knob{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
+  background:var(--red);box-shadow:0 0 10px rgba(255,68,68,.8);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1),background .35s,box-shadow .35s;}
+.switch-bar.on .knob{transform:translateX(34px);background:var(--green);box-shadow:0 0 14px rgba(0,255,136,.9);}
+.sw-hint{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--red);text-transform:uppercase;}
+.switch-bar.on .sw-hint{color:var(--green);}
+
+/* ── METERS ROW ── */
+.meters-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
+.meter{background:var(--panel);border:1px solid var(--border);padding:16px;text-align:center;position:relative;overflow:hidden;}
+.meter::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.meter.voltage::before{background:#ff6b6b;}
+.meter.current::before{background:var(--green);}
+.meter.resistance::before{background:var(--amber);}
+.meter-sym{font-family:'Share Tech Mono',monospace;font-size:26px;font-weight:700;display:block;}
+.meter.voltage .meter-sym{color:#ff6b6b;text-shadow:0 0 18px rgba(255,107,107,.5);}
+.meter.current .meter-sym{color:var(--green);text-shadow:0 0 18px rgba(0,255,136,.5);}
+.meter.resistance .meter-sym{color:var(--amber);text-shadow:0 0 18px rgba(255,179,0,.5);}
+.meter-val{font-family:'Share Tech Mono',monospace;font-size:30px;color:#fff;display:block;margin:6px 0 3px;transition:all .2s;}
+.meter-unit{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.meter-lbl{font-size:9px;letter-spacing:3px;color:var(--muted);margin-top:3px;text-transform:uppercase;}
+
+/* ── CIRCUIT SVG PANEL ── */
+.circuit-panel{background:var(--panel);border:1px solid var(--border);border-top:2px solid var(--amber);
+  padding:16px;margin-bottom:16px;position:relative;}
+.panel-title{font-size:10px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;}
+.panel-title::before{content:'';display:inline-block;width:8px;height:8px;border:1px solid var(--accent);background:rgba(0,212,255,.3);}
+#circuit-svg{width:100%;max-height:320px;display:block;}
+.off-overlay{position:absolute;inset:0;background:rgba(10,13,18,.72);display:flex;align-items:center;
+  justify-content:center;z-index:10;pointer-events:none;transition:opacity .4s;}
+.off-overlay.hidden{opacity:0;pointer-events:none;}
+.off-msg{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:4px;color:var(--red);
+  text-transform:uppercase;border:1px solid var(--red);padding:10px 22px;background:rgba(12,0,0,.9);
+  animation:blink 1.4s infinite;}
+
+/* ── CONTROLS ── */
+.controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.ctrl-panel{background:var(--panel);border:1px solid var(--border);border-top:2px solid var(--accent);padding:18px;}
+.ctrl-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.ctrl-name{font-size:13px;font-weight:600;letter-spacing:2px;color:var(--text);text-transform:uppercase;}
+.ctrl-val{font-family:'Share Tech Mono',monospace;font-size:20px;color:var(--accent);text-shadow:0 0 14px rgba(0,212,255,.4);}
+.ctrl-unit{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--dim);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);
+  border-radius:50%;box-shadow:0 0 12px rgba(0,212,255,.7);transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3);}
+.range-lbl{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);margin-top:5px;}
+
+/* ── GRAPH + TABLE SECTION ── */
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.section-panel{background:var(--panel);border:1px solid var(--border);padding:16px;}
+.section-panel.graph-panel{border-top:2px solid var(--accent);}
+.section-panel.table-panel{border-top:2px solid var(--amber);}
+.graph-canvas-wrap{position:relative;height:240px;}
+.graph-tabs{display:flex;gap:2px;margin-bottom:12px;background:var(--dim);padding:3px;}
+.gtab{flex:1;padding:6px;background:none;border:none;color:var(--muted);font-family:'Rajdhani',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.gtab.active{background:var(--accent);color:#000;}
+
+/* Table */
+.tbl-controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.tbl-btn{padding:6px 14px;border:1px solid var(--border);background:var(--dim);color:var(--text);
+  font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:2px;cursor:pointer;
+  text-transform:uppercase;transition:all .2s;}
+.tbl-btn:hover{border-color:var(--amber);color:var(--amber);}
+.tbl-btn.record-btn{border-color:var(--green);color:var(--green);}
+.tbl-btn.record-btn:hover{background:rgba(0,255,136,.1);}
+.tbl-btn.clear-btn{border-color:var(--red);color:var(--red);}
+.tbl-btn.clear-btn:hover{background:rgba(255,68,68,.1);}
+.table-wrap{overflow-y:auto;max-height:200px;}
+table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:11px;}
+thead th{background:var(--dim);color:var(--muted);letter-spacing:2px;text-transform:uppercase;
+  padding:7px 8px;border-bottom:1px solid var(--border);text-align:center;font-size:9px;position:sticky;top:0;}
+tbody tr{border-bottom:1px solid rgba(30,58,95,.4);transition:background .15s;}
+tbody tr:hover{background:rgba(0,212,255,.04);}
+tbody td{padding:6px 8px;text-align:center;color:var(--text);}
+tbody td.v-col{color:#ff6b6b;}
+tbody td.i-col{color:var(--green);}
+tbody td.r-col{color:var(--amber);}
+tbody td.p-col{color:#c45bff;}
+tbody tr:nth-child(even){background:rgba(0,0,0,.2);}
+.empty-row td{color:var(--muted);font-size:10px;letter-spacing:2px;}
+
+/* ── POWER SECTION ── */
+.power-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.power-panel{background:var(--panel);border:1px solid var(--border);border-top:2px solid var(--green);padding:18px;}
+.power-big{font-family:'Share Tech Mono',monospace;font-size:40px;color:var(--green);
+  text-shadow:0 0 28px rgba(0,255,136,.4);line-height:1;margin:6px 0 4px;}
+.pf-list{margin-top:12px;display:flex;flex-direction:column;gap:5px;}
+.pf{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted);padding:5px 8px;
+  background:var(--dim);border-left:2px solid var(--border);}
+.bars-panel{background:var(--panel);border:1px solid var(--border);border-top:2px solid var(--accent);padding:18px;}
+.bar-item{margin-bottom:12px;}
+.bar-hdr{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:4px;}
+.bar-track{height:8px;background:var(--dim);}
+.bar-fill{height:100%;transition:width .4s cubic-bezier(.4,0,.2,1);}
+.bar-v .bar-fill{background:linear-gradient(90deg,#ff4444,#ff6b6b);}
+.bar-i .bar-fill{background:linear-gradient(90deg,#00cc66,var(--green));}
+.bar-r .bar-fill{background:linear-gradient(90deg,#cc8800,var(--amber));}
+.bar-p .bar-fill{background:linear-gradient(90deg,#7b2fff,#c45bff);}
+
+/* ── INFO / FORMULA ── */
+.formula-bar{background:var(--panel);border:1px solid var(--border);border-top:2px solid var(--accent);
+  padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;
+  gap:32px;flex-wrap:wrap;}
+.f-block{text-align:center;}
+.f-eq{font-family:'Share Tech Mono',monospace;font-size:28px;color:var(--accent);letter-spacing:3px;}
+.f-sub{font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:3px;text-transform:uppercase;}
+.f-div{width:1px;height:48px;background:linear-gradient(to bottom,transparent,var(--border),transparent);}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:16px;border-top:1px solid var(--border);margin-top:8px;}
+.ft-by{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}
+.ft-name{font-size:16px;font-weight:700;letter-spacing:2px;
+  background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;}
+.ft-addr{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:3px;}
+
+/* ── SCANLINE ── */
+@keyframes scan{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
+body::after{content:'';position:fixed;left:0;right:0;height:2px;
+  background:linear-gradient(to right,transparent,rgba(0,212,255,.08),transparent);
+  animation:scan 10s linear infinite;pointer-events:none;z-index:999;}
+
+@media(max-width:700px){
+  .meters-row,.controls-grid,.bottom-grid,.power-row{grid-template-columns:1fr;}
+  .sim-title h1{font-size:30px;}
+  .formula-bar{gap:16px;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── MUSEUM HEADER ── -->
+  <div class="museum-header">
+    <div class="museum-name">
+      <span>PSG GRD Museum</span> of Science &amp; Technology
+    </div>
+    <div class="museum-sub">PSG iTech Campus · Neelambur · Coimbatore · Tamil Nadu · India</div>
+  </div>
+
+  <!-- ── SIMULATOR TITLE ── -->
+  <div class="sim-title">
+    <h1>OHM'S LAW</h1>
+    <p>⚡ Interactive Circuit Simulator · Virtual Laboratory</p>
+  </div>
+
+  <!-- ── FORMULAE ── -->
+  <div class="formula-bar">
+    <div class="f-block"><div class="f-eq">V = I × R</div><div class="f-sub">Voltage = Current × Resistance</div></div>
+    <div class="f-div"></div>
+    <div class="f-block"><div class="f-eq">I = V / R</div><div class="f-sub">Current = Voltage ÷ Resistance</div></div>
+    <div class="f-div"></div>
+    <div class="f-block"><div class="f-eq">R = V / I</div><div class="f-sub">Resistance = Voltage ÷ Current</div></div>
+  </div>
+
+  <!-- ── POWER SWITCH ── -->
+  <div class="switch-bar" id="switch-bar">
+    <span class="sw-label">Circuit Power</span>
+    <div class="status-dot" id="status-dot"></div>
+    <span class="status-txt" id="status-txt">OFF</span>
+    <div class="toggle-wrap" onclick="toggleCircuit()">
+      <span class="tog-off">OFF</span>
+      <div class="pill"><div class="knob"></div></div>
+      <span class="tog-on">ON</span>
+    </div>
+    <span class="sw-hint" id="sw-hint">⚠ CIRCUIT OPEN — NO CURRENT</span>
+  </div>
+
+  <!-- ── METERS ── -->
+  <div class="meters-row">
+    <div class="meter voltage">
+      <span class="meter-sym">V</span>
+      <span class="meter-val" id="m-v">12.0</span>
+      <span class="meter-unit">Volts</span>
+      <span class="meter-lbl">Voltage</span>
+    </div>
+    <div class="meter current">
+      <span class="meter-sym">I</span>
+      <span class="meter-val" id="m-i">0.000</span>
+      <span class="meter-unit">Amperes</span>
+      <span class="meter-lbl">Current</span>
+    </div>
+    <div class="meter resistance">
+      <span class="meter-sym">Ω</span>
+      <span class="meter-val" id="m-r">50</span>
+      <span class="meter-unit">Ohms</span>
+      <span class="meter-lbl">Resistance</span>
+    </div>
+  </div>
+
+  <!-- ── CIRCUIT DIAGRAM ── -->
+  <div class="circuit-panel">
+    <div class="panel-title">Live Circuit Diagram — Real Components</div>
+    <div class="off-overlay" id="off-overlay">
+      <div class="off-msg">⚡ SWITCH OFF — OPEN CIRCUIT</div>
+    </div>
+
+    <svg id="circuit-svg" viewBox="0 0 900 290" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="wg"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="sg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <radialGradient id="mfA" cx="50%" cy="40%" r="55%"><stop offset="0%" stop-color="#1a2e1a"/><stop offset="100%" stop-color="#0a120a"/></radialGradient>
+        <radialGradient id="mfV" cx="50%" cy="40%" r="55%"><stop offset="0%" stop-color="#2e1a1a"/><stop offset="100%" stop-color="#120a0a"/></radialGradient>
+        <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1a2a1a"/><stop offset="50%" stop-color="#2a3a2a"/><stop offset="100%" stop-color="#1a2a1a"/></linearGradient>
+        <linearGradient id="rg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#c8a060"/><stop offset="30%" stop-color="#e8c080"/><stop offset="70%" stop-color="#d4a860"/><stop offset="100%" stop-color="#a06828"/></linearGradient>
+        <radialGradient id="lb1" cx="50%" cy="35%" r="60%"><stop offset="0%" stop-color="#fffde0"/><stop offset="60%" stop-color="#ffec60" stop-opacity=".9"/><stop offset="100%" stop-color="#ff9900" stop-opacity=".7"/></radialGradient>
+        <radialGradient id="lg1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffec60" stop-opacity=".7"/><stop offset="100%" stop-color="#ff9900" stop-opacity="0"/></radialGradient>
+      </defs>
+
+      <!-- WIRES -->
+      <line x1="110" y1="95" x2="205" y2="95" stroke="#00d4ff" stroke-width="3" filter="url(#wg)" id="w1"/>
+      <line x1="263" y1="95" x2="336" y2="95" stroke="#00d4ff" stroke-width="3" filter="url(#wg)" id="w2"/>
+      <line x1="430" y1="95" x2="502" y2="95" stroke="#00d4ff" stroke-width="3" filter="url(#wg)" id="w3"/>
+      <line x1="568" y1="95" x2="648" y2="95" stroke="#00d4ff" stroke-width="3" filter="url(#wg)" id="w4"/>
+      <line x1="648" y1="95" x2="648" y2="148" stroke="#00d4ff" stroke-width="3" filter="url(#wg)" id="w5"/>
+      <line x1="110" y1="210" x2="648" y2="210" stroke="#00d4ff" stroke-width="3" filter="url(#wg)" id="w6"/>
+      <line x1="648" y1="202" x2="648" y2="210" stroke="#00d4ff" stroke-width="3" id="w7"/>
+      <line x1="535" y1="158" x2="535" y2="210" stroke="#00d4ff" stroke-width="3" filter="url(#wg)" id="w8"/>
+
+      <!-- SWITCH -->
+      <g transform="translate(283,83)">
+        <circle cx="0" cy="12" r="4" fill="#00d4ff" opacity=".8"/>
+        <circle cx="40" cy="12" r="4" fill="#00d4ff" opacity=".8"/>
+        <line x1="4" y1="12" x2="36" y2="0" stroke="#00d4ff" stroke-width="2.5" id="sw-open"/>
+        <line x1="4" y1="12" x2="36" y2="12" stroke="#00d4ff" stroke-width="2.5" id="sw-closed" opacity="0"/>
+        <text x="20" y="-4" fill="#4a6a8a" font-family="Share Tech Mono" font-size="7" text-anchor="middle" id="sw-txt">OPEN</text>
+      </g>
+
+      <!-- ELECTRON PARTICLES -->
+      <g id="electrons" opacity="0">
+        <circle id="e1" r="4" fill="#00d4ff" opacity=".9" filter="url(#sg)"/>
+        <circle id="e2" r="4" fill="#00d4ff" opacity=".9" filter="url(#sg)"/>
+        <circle id="e3" r="4" fill="#00d4ff" opacity=".9" filter="url(#sg)"/>
+        <circle id="e4" r="3.5" fill="#00ffcc" opacity=".8" filter="url(#sg)"/>
+        <circle id="e5" r="3.5" fill="#00ffcc" opacity=".8" filter="url(#sg)"/>
+      </g>
+
+      <!-- 1. BATTERY -->
+      <g transform="translate(28,72)">
+        <rect x="0" y="10" width="82" height="128" rx="6" fill="url(#bg1)" stroke="#3a5a3a" stroke-width="2"/>
+        <rect x="5" y="28" width="72" height="72" rx="3" fill="#0d1a0d" stroke="#2a4a2a" stroke-width="1"/>
+        <text x="41" y="56" fill="#00ff88" font-family="Share Tech Mono" font-size="9" text-anchor="middle" font-weight="bold">DC CELL</text>
+        <text x="41" y="85" fill="#00ff88" font-family="Share Tech Mono" font-size="11" text-anchor="middle" id="svg-v">12.0V</text>
+        <rect x="28" y="0" width="26" height="12" rx="3" fill="#ff4444" stroke="#cc2222" stroke-width="1.5"/>
+        <text x="41" y="10" fill="#fff" font-family="Share Tech Mono" font-size="10" text-anchor="middle">+</text>
+        <rect x="28" y="136" width="26" height="12" rx="3" fill="#4a4a4a" stroke="#333" stroke-width="1.5"/>
+        <text x="41" y="146" fill="#ccc" font-family="Share Tech Mono" font-size="10" text-anchor="middle">−</text>
+        <line x1="5" y1="104" x2="77" y2="104" stroke="#2a4a2a" stroke-width="1"/>
+        <line x1="41" y1="0" x2="41" y2="-77" stroke="#ff4444" stroke-width="2.5"/>
+        <circle cx="41" cy="-77" r="4" fill="#ff4444"/>
+        <line x1="41" y1="148" x2="41" y2="220" stroke="#888" stroke-width="2.5"/>
+        <line x1="41" y1="220" x2="82" y2="220" stroke="#888" stroke-width="2"/>
+        <text x="41" y="168" fill="#4a6a8a" font-family="Share Tech Mono" font-size="8" text-anchor="middle">BATTERY</text>
+      </g>
+      <line x1="69" y1="95" x2="110" y2="95" stroke="#00d4ff" stroke-width="3" filter="url(#wg)"/>
+
+      <!-- 2. AMMETER -->
+      <g transform="translate(205,50)">
+        <rect x="0" y="0" width="58" height="72" rx="5" fill="#1a1a1a" stroke="#00ff88" stroke-width="2"/>
+        <rect x="4" y="4" width="50" height="54" rx="3" fill="url(#mfA)"/>
+        <path d="M10 50 A19 19 0 0 1 48 50" fill="none" stroke="#1a3a1a" stroke-width="1.5"/>
+        <line x1="10" y1="50" x2="13" y2="44" stroke="#00ff88" stroke-width="1" opacity=".6"/>
+        <line x1="18" y1="36" x2="21" y2="31" stroke="#00ff88" stroke-width="1" opacity=".6"/>
+        <line x1="29" y1="31" x2="29" y2="25" stroke="#00ff88" stroke-width="1.5" opacity=".8"/>
+        <line x1="40" y1="36" x2="37" y2="31" stroke="#00ff88" stroke-width="1" opacity=".6"/>
+        <line x1="48" y1="50" x2="45" y2="44" stroke="#00ff88" stroke-width="1" opacity=".6"/>
+        <g id="a-needle" transform="rotate(-90,29,50)">
+          <line x1="29" y1="50" x2="29" y2="29" stroke="#00ff88" stroke-width="1.5"/>
+          <polygon points="26,30 29,22 32,30" fill="#00ff88"/>
+        </g>
+        <circle cx="29" cy="50" r="3" fill="#00ff88" opacity=".8"/>
+        <text x="29" y="18" fill="#00ff88" font-family="Share Tech Mono" font-size="8" text-anchor="middle" font-weight="bold">A</text>
+        <text x="29" y="63" fill="#00ff88" font-family="Share Tech Mono" font-size="7" text-anchor="middle" id="svg-a">0.000A</text>
+        <rect x="10" y="68" width="12" height="6" rx="2" fill="#ff4444"/>
+        <text x="16" y="74" fill="#fff" font-family="Share Tech Mono" font-size="5" text-anchor="middle">+</text>
+        <rect x="36" y="68" width="12" height="6" rx="2" fill="#333" stroke="#555" stroke-width="1"/>
+        <text x="42" y="74" fill="#ccc" font-family="Share Tech Mono" font-size="5" text-anchor="middle">−</text>
+        <text x="29" y="90" fill="#4a6a8a" font-family="Share Tech Mono" font-size="8" text-anchor="middle">AMMETER</text>
+      </g>
+
+      <!-- 3. RESISTOR -->
+      <g transform="translate(336,73)">
+        <line x1="-18" y1="11" x2="0" y2="11" stroke="#aaa" stroke-width="2"/>
+        <line x1="94" y1="11" x2="112" y2="11" stroke="#aaa" stroke-width="2"/>
+        <rect x="0" y="0" width="94" height="22" rx="10" fill="url(#rg1)" stroke="#7a5020" stroke-width="1.5"/>
+        <rect x="14" y="0" width="7" height="22" rx="2" fill="#7a3a10" opacity=".9"/>
+        <rect x="27" y="0" width="7" height="22" rx="2" fill="#2a7a2a" opacity=".9"/>
+        <rect x="40" y="0" width="7" height="22" rx="2" fill="#111" opacity=".95"/>
+        <rect x="70" y="0" width="7" height="22" rx="2" fill="#c8a000" opacity=".9"/>
+        <ellipse cx="47" cy="5" rx="32" ry="3" fill="rgba(255,255,255,.12)"/>
+        <rect x="0" y="0" width="94" height="22" rx="10" fill="rgba(255,80,0,0)" id="res-heat" style="transition:fill .5s"/>
+        <text x="47" y="38" fill="#4a6a8a" font-family="Share Tech Mono" font-size="8" text-anchor="middle">RESISTOR</text>
+        <text x="47" y="50" fill="#ffb300" font-family="Share Tech Mono" font-size="10" text-anchor="middle" id="svg-r">50Ω</text>
+      </g>
+
+      <!-- 4. LAMP -->
+      <g transform="translate(500,50)">
+        <circle cx="35" cy="32" r="44" fill="url(#lg1)" id="lamp-halo" opacity="0"/>
+        <rect x="22" y="68" width="26" height="18" rx="2" fill="#5a5a5a" stroke="#3a3a3a" stroke-width="1.5"/>
+        <line x1="22" y1="72" x2="48" y2="72" stroke="#3a3a3a" stroke-width="1"/>
+        <line x1="22" y1="76" x2="48" y2="76" stroke="#3a3a3a" stroke-width="1"/>
+        <line x1="22" y1="80" x2="48" y2="80" stroke="#3a3a3a" stroke-width="1"/>
+        <rect x="26" y="84" width="18" height="6" rx="2" fill="#7a7a7a"/>
+        <path d="M26 68 L22 52 L48 52 L44 68 Z" fill="#1a1a2a" stroke="#2a2a4a" stroke-width="1"/>
+        <ellipse cx="35" cy="32" rx="27" ry="29" fill="#111" stroke="#333" stroke-width="2" id="bulb-off"/>
+        <ellipse cx="35" cy="32" rx="27" ry="29" fill="url(#lb1)" stroke="#ffcc00" stroke-width="2" id="bulb-on" opacity="0"/>
+        <line x1="29" y1="52" x2="32" y2="38" stroke="#888" stroke-width="1"/>
+        <line x1="41" y1="52" x2="38" y2="38" stroke="#888" stroke-width="1"/>
+        <polyline points="32,38 34,30 32,23 35,19 38,23 36,30 38,38" fill="none" stroke="#555" stroke-width="1.5" id="fil-off"/>
+        <polyline points="32,38 34,30 32,23 35,19 38,23 36,30 38,38" fill="none" stroke="#ffe060" stroke-width="2" id="fil-on" opacity="0" filter="url(#sg)"/>
+        <ellipse cx="25" cy="17" rx="6" ry="9" fill="rgba(255,255,255,.07)" transform="rotate(-20,25,17)"/>
+        <line x1="35" y1="3" x2="35" y2="-10" stroke="#aaa" stroke-width="2"/>
+        <circle cx="35" cy="-10" r="3.5" fill="#ccc" stroke="#888" stroke-width="1"/>
+        <line x1="35" y1="90" x2="35" y2="108" stroke="#aaa" stroke-width="2"/>
+        <circle cx="35" cy="108" r="3.5" fill="#ccc" stroke="#888" stroke-width="1"/>
+        <text x="35" y="124" fill="#4a6a8a" font-family="Share Tech Mono" font-size="8" text-anchor="middle">LAMP</text>
+        <text x="35" y="137" fill="#ffd060" font-family="Share Tech Mono" font-size="8" text-anchor="middle" id="svg-p">0.00W</text>
+      </g>
+
+      <!-- 5. VOLTMETER -->
+      <g transform="translate(622,118)">
+        <rect x="0" y="0" width="68" height="86" rx="5" fill="#1a1a1a" stroke="#ff6b6b" stroke-width="2"/>
+        <rect x="4" y="4" width="60" height="64" rx="3" fill="url(#mfV)"/>
+        <path d="M10 60 A24 24 0 0 1 58 60" fill="none" stroke="#3a1a1a" stroke-width="1.5"/>
+        <line x1="10" y1="60" x2="14" y2="52" stroke="#ff6b6b" stroke-width="1" opacity=".6"/>
+        <line x1="19" y1="42" x2="23" y2="36" stroke="#ff6b6b" stroke-width="1" opacity=".6"/>
+        <line x1="34" y1="36" x2="34" y2="28" stroke="#ff6b6b" stroke-width="1.5" opacity=".8"/>
+        <line x1="49" y1="42" x2="45" y2="36" stroke="#ff6b6b" stroke-width="1" opacity=".6"/>
+        <line x1="58" y1="60" x2="54" y2="52" stroke="#ff6b6b" stroke-width="1" opacity=".6"/>
+        <text x="8" y="65" fill="#ff6b6b" font-family="Share Tech Mono" font-size="6" opacity=".7">0</text>
+        <text x="29" y="28" fill="#ff6b6b" font-family="Share Tech Mono" font-size="6" opacity=".7">30</text>
+        <text x="53" y="65" fill="#ff6b6b" font-family="Share Tech Mono" font-size="6" opacity=".7">60</text>
+        <g id="v-needle" transform="rotate(-90,34,60)">
+          <line x1="34" y1="60" x2="34" y2="36" stroke="#ff6b6b" stroke-width="1.5"/>
+          <polygon points="31,37 34,29 37,37" fill="#ff6b6b"/>
+        </g>
+        <circle cx="34" cy="60" r="3.5" fill="#ff6b6b" opacity=".8"/>
+        <text x="34" y="22" fill="#ff6b6b" font-family="Share Tech Mono" font-size="9" text-anchor="middle" font-weight="bold">V</text>
+        <text x="34" y="75" fill="#ff6b6b" font-family="Share Tech Mono" font-size="8" text-anchor="middle" id="svg-vm">0.0V</text>
+        <rect x="10" y="80" width="14" height="6" rx="2" fill="#ff4444"/>
+        <text x="17" y="85" fill="#fff" font-family="Share Tech Mono" font-size="5" text-anchor="middle">+</text>
+        <rect x="44" y="80" width="14" height="6" rx="2" fill="#333" stroke="#555"/>
+        <text x="51" y="85" fill="#ccc" font-family="Share Tech Mono" font-size="5" text-anchor="middle">−</text>
+        <text x="34" y="104" fill="#4a6a8a" font-family="Share Tech Mono" font-size="8" text-anchor="middle">VOLTMETER</text>
+      </g>
+
+      <!-- Labels -->
+      <text x="234" y="36" fill="#00ff88" font-family="Share Tech Mono" font-size="8" text-anchor="middle" opacity=".8">① AMMETER</text>
+      <text x="383" y="62" fill="#ffb300" font-family="Share Tech Mono" font-size="8" text-anchor="middle" opacity=".8">② RESISTOR</text>
+      <text x="535" y="36" fill="#ffd060" font-family="Share Tech Mono" font-size="8" text-anchor="middle" opacity=".8">③ LAMP</text>
+      <text x="656" y="106" fill="#ff6b6b" font-family="Share Tech Mono" font-size="8" text-anchor="start" opacity=".8">④ VOLT-</text>
+      <text x="656" y="116" fill="#ff6b6b" font-family="Share Tech Mono" font-size="8" text-anchor="start" opacity=".8">METER</text>
+      <text x="69" y="252" fill="#4a8a4a" font-family="Share Tech Mono" font-size="8" text-anchor="middle" opacity=".8">⑤ BATTERY</text>
+    </svg>
+  </div>
+
+  <!-- ── CONTROLS ── -->
+  <div class="controls-grid">
+    <div class="ctrl-panel">
+      <div class="panel-title">Voltage Control</div>
+      <div class="ctrl-header">
+        <span class="ctrl-name">Voltage (V)</span>
+        <span><span class="ctrl-val" id="v-disp">12.0</span><span class="ctrl-unit"> V</span></span>
+      </div>
+      <input type="range" id="v-slider" min="1" max="60" step="0.5" value="12">
+      <div class="range-lbl"><span>1V</span><span>30V</span><span>60V</span></div>
+    </div>
+    <div class="ctrl-panel">
+      <div class="panel-title">Resistance Control</div>
+      <div class="ctrl-header">
+        <span class="ctrl-name">Resistance (R)</span>
+        <span><span class="ctrl-val" id="r-disp">50</span><span class="ctrl-unit"> Ω</span></span>
+      </div>
+      <input type="range" id="r-slider" min="1" max="500" step="1" value="50">
+      <div class="range-lbl"><span>1Ω</span><span>250Ω</span><span>500Ω</span></div>
+    </div>
+  </div>
+
+  <!-- ── GRAPH + DATA TABLE ── -->
+  <div class="bottom-grid">
+
+    <!-- GRAPH -->
+    <div class="section-panel graph-panel">
+      <div class="panel-title">Live Graph</div>
+      <div class="graph-tabs">
+        <button class="gtab active" onclick="switchGraph('VI')">V vs I</button>
+        <button class="gtab" onclick="switchGraph('VR')">V vs R</button>
+        <button class="gtab" onclick="switchGraph('PI')">P vs I</button>
+        <button class="gtab" onclick="switchGraph('PR')">P vs R</button>
+      </div>
+      <div class="graph-canvas-wrap">
+        <canvas id="main-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="section-panel table-panel">
+      <div class="panel-title">Collected Data</div>
+      <div class="tbl-controls">
+        <button class="tbl-btn record-btn" onclick="recordRow()">⊕ Record Reading</button>
+        <button class="tbl-btn clear-btn" onclick="clearTable()">✕ Clear All</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>V (Volts)</th>
+              <th>I (Amps)</th>
+              <th>R (Ω)</th>
+              <th>P (Watts)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="data-tbody">
+            <tr class="empty-row"><td colspan="6">— No readings recorded yet. Turn on circuit &amp; click Record. —</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── POWER + BARS ── -->
+  <div class="power-row">
+    <div class="power-panel">
+      <div class="panel-title">Power Dissipation</div>
+      <div class="meter-lbl">P = V × I = I²R = V²/R</div>
+      <div class="power-big" id="p-disp">0.000</div>
+      <div class="meter-unit">Watts</div>
+      <div class="pf-list">
+        <div class="pf" id="pf1">P = V × I = 12.0 × 0 = 0.000 W</div>
+        <div class="pf" id="pf2">P = I²R = 0² × 50 = 0.000 W</div>
+        <div class="pf" id="pf3">P = V²/R = 12² / 50 = 2.880 W (if ON)</div>
+      </div>
+    </div>
+    <div class="bars-panel">
+      <div class="panel-title">Relative Magnitudes</div>
+      <div class="bar-item bar-v">
+        <div class="bar-hdr"><span>Voltage</span><span id="bv-v">12.0 V</span></div>
+        <div class="bar-track"><div class="bar-fill" id="bv" style="width:20%"></div></div>
+      </div>
+      <div class="bar-item bar-i">
+        <div class="bar-hdr"><span>Current</span><span id="bi-v">0.000 A</span></div>
+        <div class="bar-track"><div class="bar-fill" id="bi" style="width:0%"></div></div>
+      </div>
+      <div class="bar-item bar-r">
+        <div class="bar-hdr"><span>Resistance</span><span id="br-v">50 Ω</span></div>
+        <div class="bar-track"><div class="bar-fill" id="br" style="width:10%"></div></div>
+      </div>
+      <div class="bar-item bar-p">
+        <div class="bar-hdr"><span>Power</span><span id="bp-v">0.000 W</span></div>
+        <div class="bar-track"><div class="bar-fill" id="bp" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="ft-by">Presented by</div>
+    <div class="ft-name">PSG GRD Museum of Science &amp; Technology</div>
+    <div class="ft-addr">PSG iTech Campus · Neelambur · Coimbatore · Tamil Nadu · India</div>
+  </footer>
+
+</div><!-- /container -->
+
+<script>
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let V=12, R=50, circuitOn=false;
+let tableRows=[], rowNum=0;
+let graphMode='VI';
+let animFrame, ePhase=0;
+
+// ═══════════════════════════════════
+// COMPUTE
+// ═══════════════════════════════════
+function compute(){
+  if(!circuitOn) return {V,I:0,R,P:0};
+  const I=V/R, P=V*I;
+  return {V,I,R,P};
+}
+function fmt(n,d=3){
+  if(n>=1000) return n.toFixed(0);
+  if(n>=100) return n.toFixed(1);
+  return n.toFixed(d);
+}
+
+// ═══════════════════════════════════
+// TOGGLE
+// ═══════════════════════════════════
+function toggleCircuit(){
+  circuitOn=!circuitOn;
+  const bar=document.getElementById('switch-bar');
+  bar.classList.toggle('on', circuitOn);
+  document.getElementById('off-overlay').classList.toggle('hidden', circuitOn);
+  document.getElementById('status-txt').textContent = circuitOn?'ON':'OFF';
+  document.getElementById('sw-hint').textContent = circuitOn?'✓ CIRCUIT CLOSED — CURRENT FLOWING':'⚠ CIRCUIT OPEN — NO CURRENT';
+
+  // SVG switch arm
+  document.getElementById('sw-open').style.opacity = circuitOn?'0':'1';
+  document.getElementById('sw-closed').style.opacity = circuitOn?'1':'0';
+  document.getElementById('sw-txt').textContent = circuitOn?'CLOSED':'OPEN';
+
+  if(circuitOn) sparkEffect();
+  update();
+  buildGraph();
+}
+
+function sparkEffect(){
+  const svg=document.getElementById('circuit-svg');
+  const s=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  s.setAttribute('cx','110'); s.setAttribute('cy','95');
+  s.setAttribute('r','6'); s.setAttribute('fill','#fff'); s.setAttribute('opacity','1');
+  svg.appendChild(s);
+  let op=1,r2=6;
+  const f=setInterval(()=>{
+    op-=0.09; r2+=3;
+    s.setAttribute('opacity',op); s.setAttribute('r',r2);
+    if(op<=0){clearInterval(f);svg.removeChild(s);}
+  },25);
+}
+
+// ═══════════════════════════════════
+// ELECTRON ANIMATION
+// ═══════════════════════════════════
+// Circuit path waypoints (SVG coords)
+const PATH=[
+  {x:69,y:95},{x:205,y:95},{x:263,y:95}, // battery+ → ammeter
+  {x:336,y:95},{x:430,y:95}, // → resistor
+  {x:502,y:95},{x:535,y:45}, // → lamp top
+  {x:535,y:158},{x:535,y:210}, // lamp bottom → bottom wire
+  {x:110,y:210},{x:69,y:210} // → battery-
+];
+const PTOTAL=PATH.length;
+
+function getPosByT(t){
+  // t in [0,1) travels the full circuit
+  const segs=PATH.length-1;
+  const rawSeg=t*segs;
+  const seg=Math.floor(rawSeg)%segs;
+  const frac=rawSeg-Math.floor(rawSeg);
+  const a=PATH[seg], b=PATH[seg+1]||PATH[0];
+  return {x:a.x+(b.x-a.x)*frac, y:a.y+(b.y-a.y)*frac};
+}
+
+const eIds=['e1','e2','e3','e4','e5'];
+const eOffsets=[0, 0.2, 0.4, 0.6, 0.8];
+
+function animateElectrons(){
+  if(!circuitOn){
+    eIds.forEach(id=>{ const e=document.getElementById(id); if(e){e.setAttribute('cx',-50);e.setAttribute('cy',-50);} });
+    document.getElementById('electrons').style.opacity='0';
+    return;
+  }
+  const speed=0.0008 + (V/R)/2 * 0.0012; // faster with more current
+  ePhase=(ePhase+speed)%1;
+  document.getElementById('electrons').style.opacity='1';
+  eIds.forEach((id,i)=>{
+    const t=(ePhase+eOffsets[i])%1;
+    const pos=getPosByT(t);
+    const e=document.getElementById(id);
+    if(e){ e.setAttribute('cx',pos.x); e.setAttribute('cy',pos.y); }
+  });
+  animFrame=requestAnimationFrame(animateElectrons);
+}
+
+// ═══════════════════════════════════
+// MAIN UPDATE
+// ═══════════════════════════════════
+function update(){
+  const {V:v,I,R:r,P}=compute();
+
+  // Meters
+  document.getElementById('m-v').textContent=fmt(v,1);
+  document.getElementById('m-i').textContent=circuitOn?fmt(I,3):'0.000';
+  document.getElementById('m-r').textContent=fmt(r,0);
+
+  // Slider labels
+  document.getElementById('v-disp').textContent=fmt(v,1);
+  document.getElementById('r-disp').textContent=fmt(r,0);
+
+  // SVG labels
+  document.getElementById('svg-v').textContent=fmt(v,1)+'V';
+  document.getElementById('svg-a').textContent=(circuitOn?fmt(I,3):'0.000')+'A';
+  document.getElementById('svg-r').textContent=fmt(r,0)+'Ω';
+  document.getElementById('svg-vm').textContent=(circuitOn?fmt(v,1):'0.0')+'V';
+  document.getElementById('svg-p').textContent=(circuitOn?fmt(P,2):'0.00')+'W';
+
+  // Ammeter needle
+  const aAngle=circuitOn?Math.min(90,(I/2)*180)-90:-90;
+  document.getElementById('a-needle').setAttribute('transform',`rotate(${aAngle},29,50)`);
+
+  // Voltmeter needle
+  const vAngle=circuitOn?Math.min(90,(v/60)*180)-90:-90;
+  document.getElementById('v-needle').setAttribute('transform',`rotate(${vAngle},34,60)`);
+
+  // Lamp
+  const bright=circuitOn?Math.min(1,P/10):0;
+  document.getElementById('bulb-on').style.opacity=bright;
+  document.getElementById('bulb-off').style.opacity=1-bright*0.9;
+  document.getElementById('lamp-halo').style.opacity=bright*0.85;
+  document.getElementById('fil-on').style.opacity=bright;
+  document.getElementById('fil-off').style.opacity=1-bright;
+
+  // Resistor heat
+  document.getElementById('res-heat').setAttribute('fill',
+    circuitOn?`rgba(255,80,0,${Math.min(0.3,P/50)})`:'rgba(255,80,0,0)');
+
+  // Wires
+  const intensity=circuitOn?Math.min(1,I/2):0;
+  const wc=circuitOn?`hsl(${185+intensity*30},100%,${50+intensity*10}%)`:'#1e3a5f';
+  ['w1','w2','w3','w4','w5','w6','w7','w8'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.setAttribute('stroke',wc);
+  });
+
+  // Power
+  const dp=circuitOn?P:0;
+  document.getElementById('p-disp').textContent=fmt(dp,3);
+  document.getElementById('pf1').textContent=`P = V × I = ${fmt(v,1)} × ${circuitOn?fmt(I,3):'0'} = ${fmt(dp,3)} W`;
+  document.getElementById('pf2').textContent=`P = I²R = ${circuitOn?fmt(I,3):'0'}² × ${fmt(r,0)} = ${fmt(dp,3)} W`;
+  document.getElementById('pf3').textContent=`P = V²/R = ${fmt(v,1)}² / ${fmt(r,0)} = ${circuitOn?fmt(P,3):'—'} W`;
+
+  // Bars
+  document.getElementById('bv').style.width=Math.min(100,(v/60)*100)+'%';
+  document.getElementById('bi').style.width=circuitOn?Math.min(100,(I/2)*100)+'%':'0%';
+  document.getElementById('br').style.width=Math.min(100,(r/500)*100)+'%';
+  document.getElementById('bp').style.width=circuitOn?Math.min(100,(P/3600)*100)+'%':'0%';
+  document.getElementById('bv-v').textContent=fmt(v,1)+' V';
+  document.getElementById('bi-v').textContent=(circuitOn?fmt(I,3):'0.000')+' A';
+  document.getElementById('br-v').textContent=fmt(r,0)+' Ω';
+  document.getElementById('bp-v').textContent=(circuitOn?fmt(P,3):'0.000')+' W';
+
+  // Graph live
+  updateLivePoint();
+}
+
+// ═══════════════════════════════════
+// CHART
+// ═══════════════════════════════════
+let chart=null;
+
+function getGraphData(){
+  const pts=[];
+  if(graphMode==='VI'){
+    for(let v=1;v<=60;v+=1) pts.push({x:v/R, y:v});
+  } else if(graphMode==='VR'){
+    for(let r=1;r<=500;r+=5) pts.push({x:r, y:V});
+  } else if(graphMode==='PI'){
+    for(let v=1;v<=60;v+=1){ const i=v/R; pts.push({x:i,y:v*i}); }
+  } else if(graphMode==='PR'){
+    for(let r=1;r<=500;r+=5){ const p=V*V/r; pts.push({x:r,y:p}); }
+  }
+  return pts;
+}
+
+function getLivePoint(){
+  const {V:v,I,R:r,P}=compute();
+  if(graphMode==='VI') return {x:I,y:v};
+  if(graphMode==='VR') return {x:r,y:v};
+  if(graphMode==='PI') return {x:I,y:P};
+  if(graphMode==='PR') return {x:r,y:P};
+}
+
+function getLabels(){
+  const labels={
+    'VI':{x:'Current (A)',y:'Voltage (V)',title:'V–I Characteristic'},
+    'VR':{x:'Resistance (Ω)',y:'Voltage (V)',title:'Voltage vs Resistance'},
+    'PI':{x:'Current (A)',y:'Power (W)',title:'P–I Curve'},
+    'PR':{x:'Resistance (Ω)',y:'Power (W)',title:'P–R Curve'},
+  };
+  return labels[graphMode];
+}
+
+function buildGraph(){
+  const ctx=document.getElementById('main-chart').getContext('2d');
+  if(chart) chart.destroy();
+  const data=getGraphData();
+  const lv=getLivePoint();
+  const lb=getLabels();
+
+  chart=new Chart(ctx,{
+    type:'scatter',
+    data:{
+      datasets:[
+        {
+          label:'Theoretical',
+          data,
+          showLine:true,
+          borderColor:'#00d4ff',
+          backgroundColor:'rgba(0,212,255,.06)',
+          borderWidth:2,
+          pointRadius:0,
+          tension:0.2,
+          fill:true,
+        },
+        {
+          label:'Current Reading',
+          data: circuitOn?[lv]:[],
+          showLine:false,
+          backgroundColor:'#ff4444',
+          borderColor:'#ff4444',
+          pointRadius:8,
+          pointHoverRadius:10,
+        },
+        {
+          label:'Recorded Points',
+          data: tableRows.filter(r=>r.on).map(r=>{
+            if(graphMode==='VI') return {x:r.I,y:r.V};
+            if(graphMode==='VR') return {x:r.R,y:r.V};
+            if(graphMode==='PI') return {x:r.I,y:r.P};
+            if(graphMode==='PR') return {x:r.R,y:r.P};
+          }),
+          showLine:false,
+          backgroundColor:'#00ff88',
+          borderColor:'#00ff88',
+          pointRadius:6,
+          pointHoverRadius:8,
+        }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:300},
+      plugins:{
+        legend:{
+          labels:{color:'#4a6a8a',font:{size:10,family:'Share Tech Mono'},boxWidth:12}
+        },
+        title:{display:true,text:lb.title,color:'#c8ddef',font:{size:13,family:'Share Tech Mono'},padding:{bottom:8}}
+      },
+      scales:{
+        x:{title:{display:true,text:lb.x,color:'#4a6a8a',font:{size:10,family:'Share Tech Mono'}},
+           grid:{color:'rgba(30,58,95,.5)'},ticks:{color:'#4a6a8a',font:{size:9,family:'Share Tech Mono'}}},
+        y:{title:{display:true,text:lb.y,color:'#4a6a8a',font:{size:10,family:'Share Tech Mono'}},
+           grid:{color:'rgba(30,58,95,.5)'},ticks:{color:'#4a6a8a',font:{size:9,family:'Share Tech Mono'}}}
+      }
+    }
+  });
+}
+
+function updateLivePoint(){
+  if(!chart) return;
+  const lv=getLivePoint();
+  chart.data.datasets[1].data = circuitOn?[lv]:[];
+  chart.update('none');
+}
+
+function switchGraph(mode){
+  graphMode=mode;
+  document.querySelectorAll('.gtab').forEach((t,i)=>{
+    t.classList.toggle('active',['VI','VR','PI','PR'][i]===mode);
+  });
+  buildGraph();
+}
+
+// ═══════════════════════════════════
+// DATA TABLE
+// ═══════════════════════════════════
+function recordRow(){
+  const {V:v,I,R:r,P}=compute();
+  rowNum++;
+  tableRows.push({n:rowNum,V:v,I,R:r,P,on:circuitOn});
+  renderTable();
+  buildGraph(); // refresh recorded dots on graph
+}
+
+function clearTable(){
+  tableRows=[]; rowNum=0;
+  renderTable();
+  buildGraph();
+}
+
+function renderTable(){
+  const tbody=document.getElementById('data-tbody');
+  if(tableRows.length===0){
+    tbody.innerHTML='<tr class="empty-row"><td colspan="6">— No readings recorded yet. Turn on circuit &amp; click Record. —</td></tr>';
+    return;
+  }
+  tbody.innerHTML=tableRows.map(r=>`
+    <tr>
+      <td>${r.n}</td>
+      <td class="v-col">${fmt(r.V,1)}</td>
+      <td class="i-col">${r.on?fmt(r.I,4):'0.0000'}</td>
+      <td class="r-col">${fmt(r.R,0)}</td>
+      <td class="p-col">${r.on?fmt(r.P,3):'0.000'}</td>
+      <td style="color:${r.on?'var(--green)':'var(--red)'};font-size:10px;letter-spacing:1px;">
+        ${r.on?'● ON':'○ OFF'}
+      </td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════
+// SLIDER EVENTS
+// ═══════════════════════════════════
+document.getElementById('v-slider').addEventListener('input',e=>{
+  V=parseFloat(e.target.value); update(); buildGraph();
+});
+document.getElementById('r-slider').addEventListener('input',e=>{
+  R=parseFloat(e.target.value); update(); buildGraph();
+});
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+update();
+buildGraph();
+animateElectrons();
+// restart animation loop on toggle
+const _orig=toggleCircuit;
+// electron animation restarts in toggleCircuit, handled via update cycle
+setInterval(()=>{
+  if(circuitOn && !animFrame){
+    animFrame=requestAnimationFrame(animateElectrons);
+  }
+},500);
+
+// Continuous electron animation
+(function loop(){
+  if(circuitOn) animateElectrons();
+  else animFrame=null;
+  setTimeout(loop,16);
+})();
+
+// Lamp flicker when ON
+setInterval(()=>{
+  if(!circuitOn) return;
+  const {P}=compute();
+  const b=Math.min(1,P/10);
+  const flicker=b*(0.9+Math.random()*0.1);
+  const h=document.getElementById('lamp-halo');
+  if(h) h.style.opacity=flicker*0.85;
+},120);
+</script>
+</body>
+</html>
+
